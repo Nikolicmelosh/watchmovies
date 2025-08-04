@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: lookmovie-scraper
+    env: python
+    buildCommand: ""
+    startCommand: gunicorn wsgi:app
+    plan: free
