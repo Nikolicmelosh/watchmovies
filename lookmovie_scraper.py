@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "LookMovie scraper is alive!"
+    return "123MoviesFree scraper is alive!"
 
 @app.route("/search")
 def search():
@@ -15,68 +15,42 @@ def search():
     if not query:
         return jsonify({"error": "Missing query"}), 400
 
-    url = f"https://www.lookmovie2.to/movies/search?q={query}"
+    url = f"https://ww7.123moviesfree.net/?s={query}"
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                       "AppleWebKit/537.36 (KHTML, like Gecko) "
-                      "Chrome/115.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Referer": "https://www.lookmovie2.to/",
-        "DNT": "1",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
+                      "Chrome/115.0.0.0 Safari/537.36"
     }
 
     try:
         response = requests.get(url, headers=headers, timeout=10)
-
         if response.status_code != 200:
-            return jsonify({
-                "error": f"Failed to fetch. Status code: {response.status_code}",
-                "hint": "LookMovie may be blocking the server"
-            }), 500
-
-        # Optional debug: capture a portion of the HTML to see what was fetched
-        preview_html = response.text[:500]  # Only first 500 chars
-        print("=== HTML Preview ===")
-        print(preview_html)
-        print("====================")
+            return jsonify({"error": f"Failed to fetch. Status code: {response.status_code}"}), 500
 
         soup = BeautifulSoup(response.text, "html.parser")
-        movie_divs = soup.select("div.movie-item-style-2")
+        movie_divs = soup.select("div.ml-item")
 
         results = []
         for movie in movie_divs:
-            link_tag = movie.select_one("a[href^='/movies/view']")
-            img_tag = movie.select_one("img")
+            link_tag = movie.find("a")
+            img_tag = movie.find("img")
 
             if link_tag and img_tag:
                 title = img_tag.get("alt", "No title")
-                image = img_tag.get("data-src", "")
+                image = img_tag.get("data-original", "") or img_tag.get("src", "")
                 link = link_tag.get("href", "")
 
                 results.append({
                     "title": title.strip(),
-                    "image": f"https://www.lookmovie2.to{image}",
-                    "link": f"https://www.lookmovie2.to{link}"
+                    "image": image.strip(),
+                    "link": link.strip()
                 })
-
-        if not results:
-            return jsonify({
-                "error": "No movies found. The website may be blocking or returning JS-based content.",
-                "html_sample": preview_html
-            }), 500
 
         return jsonify(results)
 
     except Exception as e:
-        return jsonify({
-            "error": f"Exception occurred: {str(e)}",
-            "hint": "Possible network or scraping error"
-        }), 500
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
