@@ -32,8 +32,18 @@ def search():
 
     try:
         response = requests.get(url, headers=headers, timeout=10)
+
         if response.status_code != 200:
-            return jsonify({"error": "Failed to fetch"}), 500
+            return jsonify({
+                "error": f"Failed to fetch. Status code: {response.status_code}",
+                "hint": "LookMovie may be blocking the server"
+            }), 500
+
+        # Optional debug: capture a portion of the HTML to see what was fetched
+        preview_html = response.text[:500]  # Only first 500 chars
+        print("=== HTML Preview ===")
+        print(preview_html)
+        print("====================")
 
         soup = BeautifulSoup(response.text, "html.parser")
         movie_divs = soup.select("div.movie-item-style-2")
@@ -54,10 +64,19 @@ def search():
                     "link": f"https://www.lookmovie2.to{link}"
                 })
 
+        if not results:
+            return jsonify({
+                "error": "No movies found. The website may be blocking or returning JS-based content.",
+                "html_sample": preview_html
+            }), 500
+
         return jsonify(results)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": f"Exception occurred: {str(e)}",
+            "hint": "Possible network or scraping error"
+        }), 500
 
 
 if __name__ == "__main__":
